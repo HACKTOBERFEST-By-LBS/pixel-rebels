@@ -2,16 +2,18 @@
 
 import Image from "next/image";
 import {
-  ArrowRight, BookOpen, Brain, CaretDown, ChatCircleDots, CheckCircle,
+  ArrowRight, BookOpen, Brain, CaretDown, ChatCircleDots, CheckCircle, Globe,
   ClockCounterClockwise, Copy, FileText, GraduationCap, House, Info,
   List, LockKey, PaperPlaneTilt, Paperclip, Plus, Scan, ShieldCheck,
-  Sparkle, Trash, WarningCircle, X,
+  Sparkle, TextAa, Trash, WarningCircle, X,
 } from "@phosphor-icons/react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Attachment = { name: string; mime: string; data: string; preview?: string };
 type Chat = { id: string; title: string; messages: Message[]; learning: boolean; updated: number };
+type Language = "fr" | "en" | "ee";
+type FontMode = "soft" | "modern" | "classic";
 
 const STARTERS = [
   { icon: WarningCircle, tone: "violet", title: "Dépôt par erreur", text: "On me demande de renvoyer un transfert reçu par erreur. Est-ce une arnaque ?" },
@@ -35,13 +37,21 @@ export default function VioumApp() {
   const [chatId, setChatId] = useState(() => crypto.randomUUID());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [language, setLanguage] = useState<Language>("fr");
+  const [fontMode, setFontMode] = useState<FontMode>("soft");
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try { setHistory(JSON.parse(localStorage.getItem("vioum-chats") || "[]")); } catch { setHistory([]); }
+    try {
+      setHistory(JSON.parse(localStorage.getItem("vioum-chats") || "[]"));
+      setLanguage((localStorage.getItem("vioum-language") as Language) || "fr");
+      setFontMode((localStorage.getItem("vioum-font") as FontMode) || "soft");
+    } catch { setHistory([]); }
     fetch("/api/health").then((r) => r.json()).then((d) => setConfigured(Boolean(d.configured))).catch(() => setConfigured(false));
   }, []);
+  useEffect(() => { localStorage.setItem("vioum-language", language); }, [language]);
+  useEffect(() => { localStorage.setItem("vioum-font", fontMode); }, [fontMode]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
 
   function saveChat(next: Message[], mode = learning) {
@@ -86,7 +96,7 @@ export default function VioumApp() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: pending, learning, course, attachment }),
+        body: JSON.stringify({ messages: pending, learning, course, attachment, language }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Vioum ne répond pas pour le moment.");
@@ -102,7 +112,7 @@ export default function VioumApp() {
   function submit(event: FormEvent) { event.preventDefault(); send(); }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell font-${fontMode}`}>
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="brand"><Image src="/logo.webp" width={42} height={42} alt="Logo Vioum" priority /><span>Vioum</span></div>
         <button className="new-chat" onClick={reset}><Plus size={18} weight="bold" /> Nouvelle analyse <ArrowRight size={16} /></button>
@@ -123,7 +133,7 @@ export default function VioumApp() {
       <div className="main-area">
         <header className="topbar">
           <div className="topbar-left"><button className="mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="Ouvrir le menu"><List size={22} /></button><div><span>{learning ? "Espace apprentissage" : "Tableau de bord"}</span><small> / {messages.length ? "Conversation active" : "Nouvelle analyse"}</small></div></div>
-          <div className="topbar-actions"><span className={`api-status ${configured ? "ready" : ""}`}><span />{configured === null ? "Connexion…" : configured ? "Gemma connecté" : "Clé à configurer"}</span><button aria-label="Aide" onClick={() => setHelpOpen(true)}><Info size={21} /></button><div className="avatar"><Image src="/logo.webp" width={34} height={34} alt="" /></div></div>
+          <div className="topbar-actions"><span className={`api-status ${configured ? "ready" : ""}`}><span />{configured === null ? "Connexion…" : configured ? "Gemma connecté" : "Clé à configurer"}</span><label className="preference" title="Langue de réponse"><Globe size={16} /><select value={language} onChange={(e) => setLanguage(e.target.value as Language)} aria-label="Choisir la langue"><option value="fr">Français</option><option value="en">English</option><option value="ee">Eʋegbe</option></select><CaretDown size={12} /></label><label className="preference font-choice" title="Police d’affichage"><TextAa size={17} /><select value={fontMode} onChange={(e) => setFontMode(e.target.value as FontMode)} aria-label="Choisir la police"><option value="soft">Moderne</option><option value="modern">Nette</option><option value="classic">Classique</option></select><CaretDown size={12} /></label><button aria-label="Aide" onClick={() => setHelpOpen(true)}><Info size={21} /></button><div className="avatar"><Image src="/logo.webp" width={34} height={34} alt="" /></div></div>
         </header>
 
         <main className={messages.length ? "chat-main" : "dashboard-main"}>
