@@ -11,7 +11,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Attachment = { name: string; mime: string; data: string; preview?: string };
-type Chat = { id: string; title: string; messages: Message[]; learning: boolean; updated: number };
+type Chat = { id: string; title: string; messages: Message[]; learning: boolean; language?: Language; updated: number };
 type Language = "fr" | "en" | "ewe" | "kab";
 type FontMode = "soft" | "modern" | "classic";
 
@@ -20,6 +20,13 @@ const STARTERS = [
   { icon: Scan, tone: "blue", title: "Analyser une capture", text: "Je souhaite analyser la capture d’un SMS Mobile Money suspect." },
   { icon: ShieldCheck, tone: "cyan", title: "Bons réflexes", text: "Quels sont les bons réflexes pour repérer une arnaque Mobile Money ?" },
 ];
+
+const LANGUAGE_DETAILS: Record<Language, { label: string; note: string }> = {
+  fr: { label: "Français", note: "Réponses et termes de sécurité en français." },
+  en: { label: "English", note: "Security guidance is returned in English." },
+  ewe: { label: "Eʋegbe (Ewe)", note: "Les réponses sont demandées en Eʋegbe ; les termes techniques peuvent être précisés en français." },
+  kab: { label: "Kabyè", note: "Les réponses sont demandées en Kabyè ; les termes techniques peuvent être précisés en français." },
+};
 
 function cleanTitle(text: string) {
   return text.replace(/^\//, "").replace(/\s+/g, " ").trim().slice(0, 38) || "Analyse de message";
@@ -57,7 +64,7 @@ export default function VioumApp() {
 
   function saveChat(next: Message[], mode = learning) {
     const title = cleanTitle(next.find((m) => m.role === "user")?.content || "Conversation");
-    const chat: Chat = { id: chatId, title, messages: next.slice(-30), learning: mode, updated: Date.now() };
+    const chat: Chat = { id: chatId, title, messages: next.slice(-30), learning: mode, language, updated: Date.now() };
     const updated = [chat, ...history.filter((c) => c.id !== chatId)].slice(0, 12);
     setHistory(updated);
     localStorage.setItem("vioum-chats", JSON.stringify(updated));
@@ -70,6 +77,7 @@ export default function VioumApp() {
 
   function loadChat(chat: Chat) {
     setMessages(chat.messages); setLearning(chat.learning); setCourse(""); setAttachment(null);
+    if (chat.language) setLanguage(chat.language);
     setChatId(chat.id); setSidebarOpen(false);
   }
 
@@ -166,6 +174,7 @@ export default function VioumApp() {
 
         <footer className="composer-wrap">
           <div className="composer">
+            <div className="language-context"><Globe size={15} /><div><strong>Réponses en {LANGUAGE_DETAILS[language].label}</strong><span>{LANGUAGE_DETAILS[language].note}</span></div></div>
             {learning && <div className="learning-bar"><span><GraduationCap size={17} /> Mode apprentissage</span><div><button onClick={() => send("/resume")}>Résumé</button><button onClick={() => send("/plan")}>Plan</button><button onClick={() => send("/quiz")}>Quiz</button></div></div>}
             {attachment && <div className="attachment-chip">{attachment.preview ? <Image src={attachment.preview} width={42} height={42} alt="Aperçu" unoptimized /> : <FileText size={24} />}<span>{attachment.name}</span><button onClick={() => setAttachment(null)} aria-label="Retirer le fichier"><X size={16} /></button></div>}
             <form onSubmit={submit}><textarea id="message-box" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={learning ? "Posez une question sur votre cours…" : "Collez votre SMS ou décrivez la situation…"} rows={2} disabled={busy} /><div className="composer-actions"><div><button type="button" onClick={() => fileRef.current?.click()} aria-label="Joindre un fichier"><Paperclip size={19} /></button><span>PNG, JPG, PDF ou TXT · 8 Mo max.</span></div><button className="send-button" type="submit" disabled={busy || (!input.trim() && !attachment)}><PaperPlaneTilt size={19} weight="fill" /> Envoyer</button></div></form>
