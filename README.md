@@ -15,7 +15,7 @@ Ouvrez `http://localhost:3000`.
 
 ## Hébergement
 
-Le projet est prêt pour Vercel. Importez le dépôt, puis ajoutez `GEMINI_API_KEY` et, si besoin, `GEMINI_MODEL=gemma-4-26b-a4b-it` dans les variables d'environnement du projet. Ne mettez jamais la clé dans le navigateur ou dans Git.
+Le projet est prêt pour Vercel. Importez le dépôt, puis ajoutez `GEMINI_API_KEY` et, si besoin, `GEMINI_MODEL=gemma-4-26b-a4b-it` dans les variables d'environnement du projet. Pour activer les réponses locales vérifiées, ajoutez aussi `YODI_API_KEY` : Vioum traduit les analyses françaises avec Yodi vers l'Eʋegbe (`ewe_Latn`) ou le Kabyè (`kbp_Latn`). Ne mettez jamais une clé dans le navigateur ou dans Git.
 
 ## Commandes
 

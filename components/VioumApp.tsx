@@ -40,6 +40,7 @@ export default function VioumApp() {
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [busy, setBusy] = useState(false);
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [yodiConfigured, setYodiConfigured] = useState<boolean | null>(null);
   const [history, setHistory] = useState<Chat[]>([]);
   const [chatId, setChatId] = useState(() => crypto.randomUUID());
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +57,7 @@ export default function VioumApp() {
       setLanguage(savedLanguage === "en" || savedLanguage === "ewe" || savedLanguage === "kab" ? savedLanguage : "fr");
       setFontMode((localStorage.getItem("vioum-font") as FontMode) || "soft");
     } catch { setHistory([]); }
-    fetch("/api/health").then((r) => r.json()).then((d) => setConfigured(Boolean(d.configured))).catch(() => setConfigured(false));
+    fetch("/api/health").then((r) => r.json()).then((d) => { setConfigured(Boolean(d.configured)); setYodiConfigured(Boolean(d.yodiTranslationConfigured)); }).catch(() => { setConfigured(false); setYodiConfigured(false); });
   }, []);
   useEffect(() => { localStorage.setItem("vioum-language", language); }, [language]);
   useEffect(() => { localStorage.setItem("vioum-font", fontMode); }, [fontMode]);
@@ -119,6 +120,7 @@ export default function VioumApp() {
   }
 
   function submit(event: FormEvent) { event.preventDefault(); send(); }
+  const localLanguageNeedsYodi = (language === "ewe" || language === "kab") && yodiConfigured === false;
 
   return (
     <div className={`app-shell font-${fontMode}`}>
@@ -174,7 +176,7 @@ export default function VioumApp() {
 
         <footer className="composer-wrap">
           <div className="composer">
-            <div className="language-context"><Globe size={15} /><div><strong>Réponses en {LANGUAGE_DETAILS[language].label}</strong><span>{LANGUAGE_DETAILS[language].note}</span></div></div>
+            <div className={`language-context ${localLanguageNeedsYodi ? "needs-setup" : ""}`}><Globe size={15} /><div><strong>Réponses en {LANGUAGE_DETAILS[language].label}</strong><span>{localLanguageNeedsYodi ? "Ajoutez YODI_API_KEY pour activer la traduction locale vérifiée." : LANGUAGE_DETAILS[language].note}</span></div></div>
             {learning && <div className="learning-bar"><span><GraduationCap size={17} /> Mode apprentissage</span><div><button onClick={() => send("/resume")}>Résumé</button><button onClick={() => send("/plan")}>Plan</button><button onClick={() => send("/quiz")}>Quiz</button></div></div>}
             {attachment && <div className="attachment-chip">{attachment.preview ? <Image src={attachment.preview} width={42} height={42} alt="Aperçu" unoptimized /> : <FileText size={24} />}<span>{attachment.name}</span><button onClick={() => setAttachment(null)} aria-label="Retirer le fichier"><X size={16} /></button></div>}
             <form onSubmit={submit}><textarea id="message-box" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={learning ? "Posez une question sur votre cours…" : "Collez votre SMS ou décrivez la situation…"} rows={2} disabled={busy} /><div className="composer-actions"><div><button type="button" onClick={() => fileRef.current?.click()} aria-label="Joindre un fichier"><Paperclip size={19} /></button><span>PNG, JPG, PDF ou TXT · 8 Mo max.</span></div><button className="send-button" type="submit" disabled={busy || (!input.trim() && !attachment)}><PaperPlaneTilt size={19} weight="fill" /> Envoyer</button></div></form>
